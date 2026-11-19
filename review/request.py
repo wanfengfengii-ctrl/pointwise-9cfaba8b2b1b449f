@@ -21,3 +21,19 @@ def parse_review_request(admission_id, left, right, tolerance):
     if tolerance < 0:
         raise ValueError('tolerance must be nonnegative')
     return ReviewRequest(admission_id, left, right, tolerance)
+
+
+@dataclass(frozen=True, slots=True)
+class MinimumRequest:
+    admission_id: str
+    left: Fraction
+    right: Fraction
+
+
+def parse_minimum_request(admission_id, left, right):
+    if type(admission_id) is not str or not admission_id.strip():
+        raise ValueError('expected an admission id')
+    left, right = map(parse_rational, (left, right))
+    if left > right:
+        raise ValueError('review window is reversed')
+    return MinimumRequest(admission_id, left, right)

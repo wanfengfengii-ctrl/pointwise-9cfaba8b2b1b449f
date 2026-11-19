@@ -1,5 +1,5 @@
 from report.receipts import make_receipt
-from report.store import ReportSnapshot, ReportStore
+from report.store import MinimumSnapshot, ReportSnapshot, ReportStore
 
 
 class MissingReport(KeyError):
@@ -20,6 +20,25 @@ def publish_report(db, request, origin, segments):
 
 def read(db, report_id):
     snapshot = ReportStore(db).fetch_report(report_id)
+    if snapshot is None:
+        raise MissingReport(report_id)
+    return snapshot
+
+
+def publish_minimum(db, request, origin, status, infimum, best):
+    if request.admission_id != origin.admission_id:
+        raise ValueError('request and report origin disagree')
+    best = tuple(best)
+    store = ReportStore(db)
+    with db:
+        report_id = store.insert_minimum(request, origin, status, infimum, best)
+        receipt = make_receipt(report_id, origin)
+        store.insert_minimum_receipt(receipt)
+    return MinimumSnapshot(report_id, request, origin, receipt, infimum, status, best)
+
+
+def read_minimum(db, report_id):
+    snapshot = ReportStore(db).fetch_minimum(report_id)
     if snapshot is None:
         raise MissingReport(report_id)
     return snapshot

@@ -46,7 +46,8 @@ def isolated_segments():
 
 def row_count(db, table):
     tables = ('revisions', 'frozen_rosters', 'issues', 'dispatches', 'admissions',
-              'reports', 'report_receipts', 'commit_failures')
+              'reports', 'report_receipts', 'minimum_reports', 'minimum_receipts',
+              'commit_failures')
     if table not in tables:
         raise ValueError('unknown fixture table')
     return db.execute(f'SELECT count(*) FROM {table}').fetchone()[0]
@@ -59,6 +60,19 @@ def reject_report_commit(db):
             target INTEGER REFERENCES commit_targets(id) DEFERRABLE INITIALLY DEFERRED
         );
         CREATE TRIGGER reject_report_commit AFTER INSERT ON report_receipts
+        BEGIN
+            INSERT INTO commit_failures (target) VALUES (1);
+        END;
+    ''')
+
+
+def reject_minimum_commit(db):
+    db.executescript('''
+        CREATE TABLE commit_targets (id INTEGER PRIMARY KEY);
+        CREATE TABLE commit_failures (
+            target INTEGER REFERENCES commit_targets(id) DEFERRABLE INITIALLY DEFERRED
+        );
+        CREATE TRIGGER reject_minimum_commit AFTER INSERT ON minimum_receipts
         BEGIN
             INSERT INTO commit_failures (target) VALUES (1);
         END;
